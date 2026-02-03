@@ -32,7 +32,7 @@ values (
       from Customer
       where username = 'joasam'
     ),
-    'payed',
+    'BETALD',
     '2026-01-30 12:15:00'
   ),
   (
@@ -41,7 +41,7 @@ values (
       from Customer
       where username = 'joasam'
     ),
-    'active',
+    'AKTIV',
     '2026-01-29 19:30:00'
   ),
   (
@@ -50,7 +50,7 @@ values (
       from Customer
       where username = 'gw'
     ),
-    'payed',
+    'BETALD',
     '2026-01-30 09:00:00'
   ),
   (
@@ -59,7 +59,7 @@ values (
       from Customer
       where username = 'af96'
     ),
-    'payed',
+    'BETALD',
     '2026-01-28 18:45:00'
   ),
   (
@@ -68,7 +68,7 @@ values (
       from Customer
       where username = 'tete'
     ),
-    'active',
+    'AKTIV',
     '2026-01-30 20:05:00'
   ),
   (
@@ -77,7 +77,7 @@ values (
       from Customer
       where username = 'masoaj'
     ),
-    'payed',
+    'BETALD',
     '2026-01-29 14:10:00'
   );
 
@@ -96,7 +96,7 @@ from (
             from Customer
             where username = 'joasam'
           )
-          and status = 'payed'
+          and status = 'BETALD'
         order by order_date asc
         limit 1
       ) as order_id,
@@ -113,7 +113,7 @@ from (
             from Customer
             where username = 'joasam'
           )
-          and status = 'payed'
+          and status = 'BETALD'
         order by order_date asc
         limit 1
       ), 'Adilette', 45, 'Blue/White', 2
@@ -138,7 +138,7 @@ from (
             from Customer
             where username = 'joasam'
           )
-          and status = 'active'
+          and status = 'AKTIV'
         limit 1
       ) as order_id,
       'Campus' as name,
@@ -154,7 +154,7 @@ from (
             from Customer
             where username = 'joasam'
           )
-          and status = 'active'
+          and status = 'AKTIV'
         limit 1
       ), 'Alpha Fly 3', 45, 'Marinblå', 1
   ) x
@@ -178,7 +178,7 @@ from (
             from Customer
             where username = 'gw'
           )
-          and status = 'payed'
+          and status = 'BETALD'
         limit 1
       ) as order_id,
       'Capri' as name,
@@ -194,7 +194,7 @@ from (
             from Customer
             where username = 'gw'
           )
-          and status = 'payed'
+          and status = 'BETALD'
         limit 1
       ), 'Arizona', 45, 'Dark Brown', 1
   ) x
@@ -214,7 +214,7 @@ from CustomerOrder o
   and s.size = 45
   and s.colour = 'Basalt Grey'
 where cu.username = 'af96'
-  and o.status = 'payed'
+  and o.status = 'BETALD'
 limit 1;
 
 -- aktiv order
@@ -229,7 +229,7 @@ from CustomerOrder o
   and s.size = 41
   and s.colour = 'Wheat'
 where cu.username = 'tete'
-  and o.status = 'active'
+  and o.status = 'AKTIV'
 limit 1;
 
 -- 2 skor
@@ -247,7 +247,7 @@ from (
             from Customer
             where username = 'masoaj'
           )
-          and status = 'payed'
+          and status = 'BETALD'
         limit 1
       ) as order_id,
       'Adilette Ayoon' as name,
@@ -263,7 +263,7 @@ from (
             from Customer
             where username = 'masoaj'
           )
-          and status = 'payed'
+          and status = 'BETALD'
         limit 1
       ), 'Trail Boot', 42, 'Tived', 1
   ) x

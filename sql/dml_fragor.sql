@@ -9,7 +9,7 @@ from Customer cu
   join CustomerOrderItem coi on coi.order_id = co.order_id
   join Shoe s on s.shoe_id = coi.shoe_id
   join Brand b on b.brand_id = s.brand_id
-where co.status = 'payed'
+where co.status = 'BETALD'
   and b.name = 'Birkenstock'
   and s.size = 45;
 
@@ -20,7 +20,7 @@ from CustomerOrder co
   join CustomerOrderItem coi on coi.order_id = co.order_id
   join ShoeCategory sc on sc.shoe_id = coi.shoe_id
   join Category c on c.category_id = sc.category_id
-where co.status = 'payed'
+where co.status = 'BETALD'
 group by c.category_id,
   c.name
 order by shoes_sold desc,
@@ -36,7 +36,7 @@ select cu.customer_id,
   coalesce(sum(coi.quantity * coi.price), 0) as total_spent
 from Customer cu
   left join CustomerOrder co on co.customer_id = cu.customer_id
-  and co.status = 'payed'
+  and co.status = 'BETALD'
   left join CustomerOrderItem coi on coi.order_id = co.order_id
 group by cu.customer_id,
   cu.name,
@@ -53,7 +53,7 @@ select cu.city,
   coalesce(sum(coi.quantity * coi.price), 0) as total_spent
 from Customer cu
   left join CustomerOrder co on co.customer_id = cu.customer_id
-  and co.status = 'payed'
+  and co.status = 'BETALD'
   left join CustomerOrderItem coi on coi.order_id = co.order_id
 group by cu.city
 order by total_spent desc,
@@ -64,7 +64,7 @@ select cu.city,
   sum(coi.quantity * coi.price) as total_spent
 from Customer cu
   join CustomerOrder co on co.customer_id = cu.customer_id
-  and co.status = 'payed'
+  and co.status = 'BETALD'
   join CustomerOrderItem coi on coi.order_id = co.order_id
 group by cu.city
 having sum(coi.quantity * coi.price) > 2000
@@ -82,7 +82,7 @@ from CustomerOrder co
   join CustomerOrderItem coi on coi.order_id = co.order_id
   join Shoe s on s.shoe_id = coi.shoe_id
   join Brand b on b.brand_id = s.brand_id
-where co.status = 'payed'
+where co.status = 'BETALD'
 group by s.shoe_id,
   b.name,
   s.name,
@@ -98,7 +98,7 @@ select year(co.order_date) as year,
   sum(coi.quantity) as units_sold
 from CustomerOrder co
   join CustomerOrderItem coi on coi.order_id = co.order_id
-where co.status = 'payed'
+where co.status = 'BETALD'
 group by year(co.order_date),
   month(co.order_date)
 order by units_sold desc,
