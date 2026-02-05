@@ -40,7 +40,7 @@ void showCategories(){
     String query = "select * from category";
     try(Connection conn = MySQLDataSourceConfig.getConnection();
     PreparedStatement stmt = conn.prepareStatement(query);
-    ResultSet rs = stmt.executeQuery();){
+    ResultSet rs = stmt.executeQuery()){
         while(rs.next()){
             System.out.println(rs.getString(2));
         }
@@ -70,7 +70,7 @@ void getAllCustomersAndTheirData(){
         while(rs.next()){
             count++;
             System.out.println(rs.getString(2) + " " + rs.getString(3) + " " + rs.getString(4));
-            val += (double) getMoneySpentFromCustomer(rs.getString(1));
+            val += getMoneySpentFromCustomer(rs.getString(1));
         }
     } catch (SQLException e) {
         throw new RuntimeException(e);
@@ -82,8 +82,7 @@ void getAllCustomersAndTheirData(){
 double getMoneySpentFromCustomer(String customerId){
     String query = "select * from customerdata where customer_id = ?";
     try(Connection conn = MySQLDataSourceConfig.getConnection();
-    PreparedStatement stmt = conn.prepareStatement(query);
-    ){
+    PreparedStatement stmt = conn.prepareStatement(query)){
         stmt.setString(1, customerId);
         ResultSet rs = stmt.executeQuery();
         while(rs.next()){
@@ -96,9 +95,7 @@ double getMoneySpentFromCustomer(String customerId){
     return 0;
 }
 
-
-
-void main() throws SQLException {
+void main(){
     //System.out.println(tryPassword("joasam", "12345"));
     //System.out.println(tryPassword("gw", "bulle1"));
     //System.out.println(addToCart(1, 2, 17));
