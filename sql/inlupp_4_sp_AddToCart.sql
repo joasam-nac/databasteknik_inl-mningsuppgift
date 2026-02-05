@@ -14,14 +14,14 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM Customer WHERE customer_id = in_customer_id
   ) THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = concat('Kund med id: ', in_customer_id, ' finns inte! ', now());
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = concat('Customer with id: ', in_customer_id, ' does not exist. ', now());
   END IF;
 
   -- kollar om sko finns
   IF NOT EXISTS (
     SELECT 1 FROM Shoe WHERE shoe_id = in_shoe_id
   ) THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = concat('Skon med id: ', in_shoe_id, ' finns inte! ', now());
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = concat('Show with id: ', in_shoe_id, ' does not exist. ', now());
   END IF;
 
   -- kollar om ordern är aktiv
@@ -59,7 +59,7 @@ BEGIN
 
   IF ROW_COUNT() = 0 THEN
     ROLLBACK;
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = concat('Skon med id: ', in_shoe_id, ' är ej i lager');
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = concat('Show with id: ', in_shoe_id, ' is out of stock. ', now());
   END IF;
 
   -- lägger till vara
