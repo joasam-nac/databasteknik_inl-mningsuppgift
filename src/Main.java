@@ -95,12 +95,12 @@ double getMoneySpentFromCustomer(String customerId){
     return 0;
 }
 
-void main(){
-    //System.out.println(tryPassword("joasam", "12345"));
-    //System.out.println(tryPassword("gw", "bulle1"));
+void main() throws SQLException {
+    System.out.println(tryPassword("joasam", "12345"));
+    System.out.println(tryPassword("gw", "bulle1"));
     //System.out.println(addToCart(1, 2, 17));
     //System.out.println(addToCart(4, 5, 15));
     //System.out.println(addToCart(5, 6, 15));
-    //showCategories();
+    showCategories();
     getAllCustomersAndTheirData();
 }
