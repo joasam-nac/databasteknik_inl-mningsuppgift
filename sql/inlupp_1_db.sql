@@ -6,25 +6,25 @@ webbshop_db;
 
 create table Category
 (
-    category_id INT         not null AUTO_INCREMENT,
-    name        VARCHAR(50) not null,
-    primary key (category_id),
-    unique key uk_category_name (name)
+    shoe_id     INT not null,
+    category_id INT not null,
+    primary key (shoe_id, category_id),
+    constraint fk_shoecategory_shoe foreign key (shoe_id) references Shoe (shoe_id) on delete cascade,
+    constraint fk_shoecategory_category foreign key (category_id) references Category (category_id) on delete cascade
 );
 
 create table Shoe
 (
-    shoe_id     INT            not null AUTO_INCREMENT,
-    name        VARCHAR(50)    not null,
-    brand       VARCHAR(50)    not null,
-    size        INT            not null,
-    colour      VARCHAR(50)    not null,
-    price       DECIMAL(10, 2) not null,
-    stock       INT            not null default 0,
-    category_id INT            not null,
+    shoe_id INT            not null AUTO_INCREMENT,
+    name    VARCHAR(50)    not null,
+    brand   VARCHAR(50)    not null,
+    size    INT            not null,
+    colour  VARCHAR(50)    not null,
+    price   DECIMAL(10, 2) not null,
+    stock   INT            not null default 0,
     primary key (shoe_id),
     unique key uk_shoe_variant (name, size, colour, brand),
-    KEY         idx_shoe_category (category_id),
+    KEY     idx_shoe_category (category_id),
     constraint chk_shoe_stock_nonneg check (stock >= 0),
     constraint chk_shoe_price_nonneg check (price >= 0),
     constraint fk_shoe_category foreign key (category_id) references Category (category_id) on update cascade on delete restrict
@@ -86,9 +86,9 @@ create trigger shoe_out_of_stock
     on Shoe
     for each row
 begin
-    IF old.stock > 0 and new.stock = 0 then
+    if (old.stock > 0 and new.stock = 0) then
         insert into OutOfStock (shoe_id, oos_time)
         values (new.shoe_id, NOW());
-end IF;
+end if;
 END$$
 DELIMITER ;
