@@ -1,3 +1,5 @@
+use webbshop_db;
+
 DELIMITER //
 
 CREATE PROCEDURE AddToCart(
@@ -7,21 +9,26 @@ CREATE PROCEDURE AddToCart(
 )
 BEGIN
   DECLARE v_order_id INT;
+  DECLARE error_msg VARCHAR(200);
 
   START TRANSACTION;
+
+
 
   -- kollar om kund finns
   IF NOT EXISTS (
     SELECT 1 FROM Customer WHERE customer_id = in_customer_id
   ) THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = concat('Customer with id: ', in_customer_id, ' does not exist. ', now());
+      SET error_msg = concat('Customer with id: ', in_customer_id, ' does not exist. ', now());
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
   END IF;
 
   -- kollar om sko finns
   IF NOT EXISTS (
     SELECT 1 FROM Shoe WHERE shoe_id = in_shoe_id
   ) THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = concat('Show with id: ', in_shoe_id, ' does not exist. ', now());
+      set error_msg = concat('Show with id: ', in_shoe_id, ' does not exist. ', now());
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
   END IF;
 
   -- kollar om ordern är aktiv
@@ -59,7 +66,8 @@ BEGIN
 
   IF ROW_COUNT() = 0 THEN
     ROLLBACK;
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = concat('Show with id: ', in_shoe_id, ' is out of stock. ', now());
+    set error_msg = concat('Show with id: ', in_shoe_id, ' is out of stock. ', now());
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
   END IF;
 
   -- lägger till vara
