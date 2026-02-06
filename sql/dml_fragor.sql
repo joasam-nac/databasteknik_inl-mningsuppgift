@@ -1,70 +1,77 @@
-USE
-webbshop_db;
+USE webbshop_db;
 
 -- kunder som köpt ett visst märke och storlek
-select distinct cu.customer_id, cu.name, cu.surname
-from Customer cu
-         join CustomerOrder co on co.customer_id = cu.customer_id
-         join CustomerOrderItem coi on coi.order_id = co.order_id
-         join Shoe s on s.shoe_id = coi.shoe_id
-where co.status = 'BETALD'
-  and s.brand = 'Birkenstock'
-  and s.size = 45;
+SELECT DISTINCT cu.id, cu.name
+FROM Customer cu
+         JOIN CustomerOrder co ON co.customer_id = cu.id
+         JOIN OrderItem oi ON oi.order_id = co.id
+         JOIN Shoe s ON s.id = oi.shoe_id
+         JOIN Brand b ON b.id = s.brand_id
+WHERE co.status = 'BETALD'
+  AND b.name = 'Birkenstock'
+  AND s.size = 45;
 
 -- antal skor per kategori
-select c.name as category, sum(coi.quantity) as shoes_sold
-from CustomerOrder co
-         join CustomerOrderItem coi on coi.order_id = co.order_id
-         join Shoe s on s.shoe_id = coi.shoe_id
-         join Category c on c.category_id = s.category_id
-where co.status = 'BETALD'
-group by c.category_id, c.name
-order by shoes_sold desc, c.name;
+SELECT c.name AS category, SUM(oi.quantity) AS shoes_sold
+FROM CustomerOrder co
+         JOIN OrderItem oi ON oi.order_id = co.id
+         JOIN Shoe s ON s.id = oi.shoe_id
+         JOIN ShoeCategory sc ON sc.shoe_id = s.id
+         JOIN Category c ON c.id = sc.category_id
+WHERE co.status = 'BETALD'
+GROUP BY c.id, c.name
+ORDER BY shoes_sold DESC, c.name;
 
--- pengar spenderat per användare
-drop table IF exists customerdata;
+-- pengar spenderat per användare (price lives on Shoe now, not OrderItem)
+DROP TABLE IF EXISTS customerdata;
 
-create table customerdata as
-select cu.customer_id, cu.name, cu.surname, coalesce(sum(coi.quantity * coi.price), 0) as total_spent
-from Customer cu
-         left join CustomerOrder co on co.customer_id = cu.customer_id and co.status = 'BETALD'
-         left join CustomerOrderItem coi on coi.order_id = co.order_id
-group by cu.customer_id, cu.name, cu.surname;
+CREATE TABLE customerdata AS
+SELECT cu.id, cu.name, COALESCE(SUM(oi.quantity * s.price), 0) AS total_spent
+FROM Customer cu
+         LEFT JOIN CustomerOrder co ON co.customer_id = cu.id AND co.status = 'BETALD'
+         LEFT JOIN OrderItem oi ON oi.order_id = co.id
+         LEFT JOIN Shoe s ON s.id = oi.shoe_id
+GROUP BY cu.id, cu.name;
 
-select *
-from customerdata
-order by total_spent desc, surname, name;
+SELECT *
+FROM customerdata
+ORDER BY total_spent DESC, name;
 
 -- pengar från varje stad
-select cu.city, coalesce(sum(coi.quantity * coi.price), 0) as total_spent
-from Customer cu
-         left join CustomerOrder co on co.customer_id = cu.customer_id and co.status = 'BETALD'
-         left join CustomerOrderItem coi on coi.order_id = co.order_id
-group by cu.city
-order by total_spent desc, cu.city;
+SELECT cu.city, COALESCE(SUM(oi.quantity * s.price), 0) AS total_spent
+FROM Customer cu
+         LEFT JOIN CustomerOrder co ON co.customer_id = cu.id AND co.status = 'BETALD'
+         LEFT JOIN OrderItem oi ON oi.order_id = co.id
+         LEFT JOIN Shoe s ON s.id = oi.shoe_id
+GROUP BY cu.city
+ORDER BY total_spent DESC, cu.city;
 
 -- alla städer som spenderat mer än 2000
-select cu.city, sum(coi.quantity * coi.price) as total_spent
-from Customer cu
-         join CustomerOrder co on co.customer_id = cu.customer_id and co.status = 'BETALD'
-         join CustomerOrderItem coi on coi.order_id = co.order_id
-group by cu.city
-having sum(coi.quantity * coi.price) > 2000
-order by total_spent desc, cu.city;
+SELECT cu.city, SUM(oi.quantity * s.price) AS total_spent
+FROM Customer cu
+         JOIN CustomerOrder co ON co.customer_id = cu.id AND co.status = 'BETALD'
+         JOIN OrderItem oi ON oi.order_id = co.id
+         JOIN Shoe s ON s.id = oi.shoe_id
+GROUP BY cu.city
+HAVING SUM(oi.quantity * s.price) > 2000
+ORDER BY total_spent DESC, cu.city;
 
 -- topp 5 skor
-select s.shoe_id, s.brand, s.name as shoe_name, s.colour, s.size, sum(coi.quantity) as units_sold
-from CustomerOrder co
-         join CustomerOrderItem coi on coi.order_id = co.order_id
-         join Shoe s on s.shoe_id = coi.shoe_id
-where co.status = 'BETALD'
-group by s.shoe_id, s.brand, s.name, s.colour, s.size
-order by units_sold desc, s.shoe_id LIMIT 5;
+SELECT s.id, b.name AS brand, s.color, s.size, SUM(oi.quantity) AS units_sold
+FROM CustomerOrder co
+         JOIN OrderItem oi ON oi.order_id = co.id
+         JOIN Shoe s ON s.id = oi.shoe_id
+         JOIN Brand b ON b.id = s.brand_id
+WHERE co.status = 'BETALD'
+GROUP BY s.id, b.name, s.color, s.size
+ORDER BY units_sold DESC, s.id
+LIMIT 5;
 
 -- bästa månaden
-select year (co.order_date) as year, month (co.order_date) as month, sum (coi.quantity) as units_sold
-from CustomerOrder co join CustomerOrderItem coi
-on coi.order_id = co.order_id
-where co.status = 'BETALD'
-group by year (co.order_date), month (co.order_date)
-order by units_sold desc, year desc, month desc LIMIT 1;
+SELECT YEAR(co.date) AS year, MONTH(co.date) AS month, SUM(oi.quantity) AS units_sold
+FROM CustomerOrder co
+         JOIN OrderItem oi ON oi.order_id = co.id
+WHERE co.status = 'BETALD'
+GROUP BY YEAR(co.date), MONTH(co.date)
+ORDER BY units_sold DESC, year DESC, month DESC
+LIMIT 1;
