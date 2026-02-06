@@ -1,74 +1,105 @@
-CREATE TABLE Brand (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(50) NOT NULL UNIQUE
+drop database if exists webbshop_db;
+create database webbshop_db;
+use webbshop_db;
+
+create table brand
+(
+    id   int auto_increment primary key,
+    name varchar(50) not null unique
 );
 
-CREATE TABLE Category (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(50) NOT NULL UNIQUE
+create table category
+(
+    id   int auto_increment primary key,
+    name varchar(50) not null unique
 );
 
-CREATE TABLE Shoe (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  brand_id INT NOT NULL,
-  size DECIMAL(4,1) NOT NULL,
-  color VARCHAR(30) NOT NULL,
-  price DECIMAL(8,2) NOT NULL,
-  stock INT NOT NULL DEFAULT 0,
-  FOREIGN KEY (brand_id) REFERENCES Brand(id)
+create table shoe
+(
+    id       int auto_increment primary key,
+    brand_id int           not null,
+    size     decimal(4, 1) not null,
+    color    varchar(30)   not null,
+    price    decimal(8, 2) not null,
+    stock    int           not null default 0,
+    check (price >= 0),
+    check (stock >= 0),
+    foreign key (brand_id) references brand (id)
+        on delete restrict
+        on update cascade
 );
 
-CREATE TABLE ShoeCategory (
-  shoe_id INT,
-  category_id INT,
-  PRIMARY KEY (shoe_id, category_id),
-  FOREIGN KEY (shoe_id) REFERENCES Shoe(id),
-  FOREIGN KEY (category_id) REFERENCES Category(id)
+create table shoecategory
+(
+    shoe_id     int not null,
+    category_id int not null,
+    primary key (shoe_id, category_id),
+    foreign key (shoe_id) references shoe (id)
+        on delete cascade
+        on update cascade,
+    foreign key (category_id) references category (id)
+        on delete cascade
+        on update cascade
 );
 
-CREATE TABLE Customer (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
-  username VARCHAR(50) NOT NULL,
-  city VARCHAR(100) NOT NULL,
-  address VARCHAR(100) NOT NULL,
-  password VARCHAR(255) NOT NULL
+create table customer
+(
+    id       int auto_increment primary key,
+    name     varchar(100) not null,
+    username varchar(50)  not null unique,
+    city     varchar(100) not null,
+    address  varchar(100) not null,
+    password varchar(255) not null
 );
 
-CREATE TABLE CustomerOrder (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  customer_id INT NOT NULL,
-  date DATE NOT NULL,
-  status ENUM('AKTIV','BETALD') NOT NULL DEFAULT 'AKTIV',
-  active_lock INT GENERATED ALWAYS AS (IF(status='AKTIV', customer_id, NULL)) STORED,
-  UNIQUE (active_lock),
-  FOREIGN KEY (customer_id) REFERENCES Customer(id)
+create table customerorder
+(
+    id          int auto_increment primary key,
+    customer_id int                      not null,
+    created_at  datetime                 not null default current_timestamp,
+    status      enum ('AKTIV', 'BETALD') not null default 'AKTIV',
+    foreign key (customer_id) references customer (id)
+        on delete cascade
+        on update cascade
 );
 
-CREATE TABLE OrderItem (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  order_id INT NOT NULL,
-  shoe_id INT NOT NULL,
-  quantity INT NOT NULL DEFAULT 1,
-  UNIQUE KEY uq_order_shoe (order_id, shoe_id),
-  FOREIGN KEY (order_id) REFERENCES CustomerOrder(id),
-  FOREIGN KEY (shoe_id) REFERENCES Shoe(id)
+create table orderitem
+(
+    id       int auto_increment primary key,
+    order_id int not null,
+    shoe_id  int not null,
+    quantity int not null default 1,
+    unique key uq_order_shoe (order_id, shoe_id),
+    check (quantity > 0),
+    foreign key (order_id) references customerorder (id)
+        on delete cascade
+        on update cascade,
+    foreign key (shoe_id) references shoe (id)
+        on delete restrict
+        on update cascade
 );
 
-CREATE TABLE OutOfStock (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  shoe_id INT NOT NULL,
-  out_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (shoe_id) REFERENCES Shoe(id)
+create table outofstock
+(
+    id      int auto_increment primary key,
+    shoe_id int      not null,
+    out_at  datetime not null default current_timestamp,
+    foreign key (shoe_id) references shoe (id)
+        on delete cascade
+        on update cascade
 );
 
-DELIMITER //
-CREATE TRIGGER trg_out_of_stock
-AFTER UPDATE ON Shoe
-FOR EACH ROW
-BEGIN
-  IF NEW.stock = 0 AND OLD.stock > 0 THEN
-    INSERT INTO OutOfStock (shoe_id) VALUES (NEW.id);
-  END IF;
-END;//
-DELIMITER ;
+delimiter //
+
+create trigger out_of_stock
+    after update
+    on shoe
+    for each row
+begin
+    if new.stock = 0 and old.stock > 0 then
+        insert into outofstock (shoe_id) values (new.id);
+    end if;
+end;
+//
+
+delimiter ;

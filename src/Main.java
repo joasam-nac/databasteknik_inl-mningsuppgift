@@ -1,39 +1,55 @@
 import java.sql.*;
 
 boolean tryPassword(String username, String password) throws SQLException {
-    boolean isCorrect = false;
-    String query = "select " + "* from customer " + "where username = ?";
+    String query = "select password from customer " + "where username = ?";
     try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(query)
-    ){
+        PreparedStatement stmt = conn.prepareStatement(query)){
         stmt.setString(1, username);
-        ResultSet rs = stmt.executeQuery();
-        while(rs.next()){
-            if(Objects.equals(rs.getString(6), password)){
-                isCorrect = true;
-            }
+        try(ResultSet rs = stmt.executeQuery()){
+         if (!rs.next()){
+             System.out.println("Unknown username");
+             return false;
+         }
+         String correctPassword = rs.getString("password");
+         return Objects.equals(correctPassword, password);
         }
-        rs.close();
     } catch(SQLException e){
-        System.out.println("FEL med test av löseonord. SQLException: " + e.getMessage());
+        System.out.println("Error while trying password. SQLException: " + e.getMessage());
+        return false;
     }
-    return isCorrect;
 }
 
-boolean addToCart(int customerId, int orderId, int shoeId) throws SQLException {
-    boolean success = false;
-    String query = "{call AddToCart(?,?,?)}";
-    try(Connection conn = MySQLDataSourceConfig.getConnection();
-    PreparedStatement stmt = conn.prepareStatement(query)){
+public void addToCart(int customerId, int shoeId) {
+    String sql = "{CALL AddToCart(?, ?)}";
+
+    try (Connection conn = MySQLDataSourceConfig.getConnection();
+         CallableStatement stmt = conn.prepareCall(sql)) {
+
         stmt.setInt(1, customerId);
-        stmt.setInt(2, orderId);
-        stmt.setInt(3, shoeId);
-        stmt.executeUpdate();
-        success = true;
-    } catch(SQLException e){
-        System.out.println("FEL med att lägga till kassan. SQLException: " + e.getMessage());
+        stmt.setInt(2, shoeId);
+        stmt.execute();
+
+        System.out.println("Shoe was added.");
+
+    } catch (SQLException e) {
+        if ("45000".equals(e.getSQLState())) {
+            String msg = e.getMessage();
+            if(msg.contains("does not exist")) {
+                if(msg.contains("Customer")){
+                    System.out.println("Make sure the correct customer id is proved");
+                }
+                else{
+                    System.out.println("Make sure the correct shoe id is provided");
+                }
+            } else if (msg.contains("stock")) {
+                System.out.println("Shoe is out of stock");
+            }
+
+        } else {
+            System.out.println("Database error:" + e.getMessage());
+        }
+
     }
-    return success;
 }
 
 void showCategories(){
@@ -46,17 +62,6 @@ void showCategories(){
         }
     } catch(SQLException e){
         System.out.println("FEL med att se kategories. SQLException: " + e.getMessage());
-    }
-}
-
-void showShoesInCategory(String categoryId){
-    String query = "select * from shoecategory where category_id = ?";
-    try(Connection conn = MySQLDataSourceConfig.getConnection();
-    PreparedStatement stmt = conn.prepareStatement(query);
-    ResultSet rs = stmt.executeQuery()){
-
-    }catch (SQLException e) {
-        throw new RuntimeException(e);
     }
 }
 
@@ -95,12 +100,21 @@ double getMoneySpentFromCustomer(String customerId){
     return 0;
 }
 
+int getIdFromUsername(String username) throws SQLException {
+    String query = "select id from customer where username = ?";
+    try(Connection conn = MySQLDataSourceConfig.getConnection();
+    PreparedStatement stmt = conn.prepareStatement(query)){
+        stmt.setString(1, username);
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()){
+            return rs.getInt(1);
+        }
+    } catch (SQLException e) {
+        throw new RuntimeException(e);
+    }
+    return 0;
+}
+
 void main() throws SQLException {
-    System.out.println(tryPassword("joasam", "12345"));
-    System.out.println(tryPassword("gw", "bulle1"));
-    //System.out.println(addToCart(1, 2, 17));
-    //System.out.println(addToCart(4, 5, 15));
-    //System.out.println(addToCart(5, 6, 15));
-    showCategories();
-    getAllCustomersAndTheirData();
+
 }

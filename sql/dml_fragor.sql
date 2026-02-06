@@ -1,4 +1,5 @@
-USE webbshop_db;
+USE
+webbshop_db;
 
 -- kunder som köpt ett visst märke och storlek
 SELECT DISTINCT cu.id, cu.name
@@ -64,14 +65,14 @@ FROM CustomerOrder co
          JOIN Brand b ON b.id = s.brand_id
 WHERE co.status = 'BETALD'
 GROUP BY s.id, b.name, s.color, s.size
-ORDER BY units_sold DESC, s.id
-LIMIT 5;
+ORDER BY units_sold DESC, s.id LIMIT 5;
 
 -- bästa månaden
-SELECT YEAR(co.date) AS year, MONTH(co.date) AS month, SUM(oi.quantity) AS units_sold
+SELECT YEAR (co.date) AS year, MONTH (co.date) AS month, SUM (oi.quantity) AS units_sold
 FROM CustomerOrder co
-         JOIN OrderItem oi ON oi.order_id = co.id
+    JOIN OrderItem oi
+ON oi.order_id = co.id
 WHERE co.status = 'BETALD'
-GROUP BY YEAR(co.date), MONTH(co.date)
+GROUP BY YEAR (co.date), MONTH (co.date)
 ORDER BY units_sold DESC, year DESC, month DESC
-LIMIT 1;
+    LIMIT 1;

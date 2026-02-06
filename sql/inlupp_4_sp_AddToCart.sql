@@ -1,74 +1,88 @@
-USE webbshop_db;
+use webbshop_db;
 
-DELIMITER //
-CREATE PROCEDURE AddToCart(
-    IN in_customer_id INT,
-    IN in_shoe_id INT
-)
-BEGIN
-    DECLARE v_order_id INT;
-    DECLARE error_msg VARCHAR(200);
+delimiter //
 
-    START TRANSACTION;
+create procedure addtocart(in in_customer_id int, in in_shoe_id int)
+begin
+    declare var_cust_id int default null;
+    declare v_customer_exists int default null;
+    declare shoe_exists int default null;
+    declare error_msg varchar(200);
 
-    -- kollar om kund finns
-    IF NOT EXISTS (SELECT 1
-                   FROM Customer
-                   WHERE id = in_customer_id) THEN
-        ROLLBACK;
-        SET error_msg = CONCAT(
-                'Customer with id: ', in_customer_id,
-                ' does not exist. ', NOW()
-            );
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
-    END IF;
+    start transaction;
 
-    -- kollar om sko finns
-    IF NOT EXISTS (SELECT 1
-                   FROM Shoe
-                   WHERE id = in_shoe_id) THEN
-        ROLLBACK;
-        SET error_msg = CONCAT(
-                'Shoe with id: ', in_shoe_id,
-                ' does not exist. ', NOW()
-            );
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
-    END IF;
+    -- hitta customer
+    select 1
+    into v_customer_exists
+    from customer
+    where id = in_customer_id
+    limit 1;
 
-    -- hämta aktiv order eller skapa ny
-    SELECT id
-    INTO v_order_id
-    FROM CustomerOrder
-    WHERE customer_id = in_customer_id
-      AND status = 'AKTIV'
-    LIMIT 1;
+    if v_customer_exists is null then
+        rollback;
+        set error_msg = concat(
+                'Customer with id: ',
+                in_customer_id,
+                ' does not exist. ',
+                now()
+                        );
+        signal sqlstate '45000' set message_text = error_msg;
+    end if;
 
-    IF v_order_id IS NULL THEN
-        INSERT INTO CustomerOrder (customer_id, date)
-        VALUES (in_customer_id, CURDATE());
-        SET v_order_id = LAST_INSERT_ID();
-    END IF;
+    -- hitta sko
+    select 1
+    into shoe_exists
+    from shoe
+    where id = in_shoe_id
+    limit 1;
 
-    -- uppdaterar lager
-    UPDATE Shoe
-    SET stock = stock - 1
-    WHERE id = in_shoe_id
-      AND stock > 0;
+    if shoe_exists is null then
+        rollback;
+        set error_msg = concat(
+                'Shoe with id: ',
+                in_shoe_id,
+                ' does not exist. ',
+                now()
+                        );
+        signal sqlstate '45000' set message_text = error_msg;
+    end if;
 
-    IF ROW_COUNT() = 0 THEN
-        ROLLBACK;
-        SET error_msg = CONCAT(
-                'Shoe with id: ', in_shoe_id,
-                ' is out of stock. ', NOW()
-            );
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
-    END IF;
+    -- hitta order annars skapa order
+    select id
+    into var_cust_id
+    from customerorder
+    where customer_id = in_customer_id
+      and status = 'AKTIV'
+    limit 1;
 
-    -- lägger till vara eller ökar quantity
-    INSERT INTO OrderItem (order_id, shoe_id, quantity)
-    VALUES (v_order_id, in_shoe_id, 1)
-    ON DUPLICATE KEY UPDATE quantity = quantity + 1;
+    if var_cust_id is null then
+        insert into customerorder (customer_id, created_at, status)
+        values (in_customer_id, now(), 'AKTIV');
+        set var_cust_id = last_insert_id();
+    end if;
 
-    COMMIT;
-END//
-DELIMITER ;
+    -- uppdatera lager
+    update shoe
+    set stock = stock - 1
+    where id = in_shoe_id
+      and stock > 0;
+
+    if row_count() = 0 then
+        rollback;
+        set error_msg = concat(
+                'Shoe with id: ',
+                in_shoe_id,
+                ' is out of stock. ',
+                now()
+                        );
+        signal sqlstate '45000' set message_text = error_msg;
+    end if;
+
+    -- öka eller lägga till vara
+    insert into orderitem (order_id, shoe_id, quantity)
+    values (var_cust_id, in_shoe_id, 1)
+    on duplicate key update quantity = quantity + 1;
+    commit;
+end//
+
+delimiter ;
