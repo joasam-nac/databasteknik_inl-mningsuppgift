@@ -100,3 +100,4 @@ create procedure checkout(in in_customer_int int)
         commit;
     end $$
 delimiter ;
+

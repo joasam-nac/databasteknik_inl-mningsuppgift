@@ -6,11 +6,12 @@ public interface ShoeDao {
     int getCustomerIdByUsername(String username) throws SQLException;
     boolean tryLogin(String username, String password) throws SQLException;
 
-    List<String> getCategories() throws SQLException;
-    List<String> listAllShoes() throws SQLException;
-    List<String> getShoesFromCategory(String category) throws SQLException;
+    List<Category> getCategories() throws SQLException;
+    void listAllShoes() throws SQLException;
+    void getShoesFromCategory(String category) throws SQLException;
+    String getBrandFromId(int brandId) throws SQLException;
 
     void addToCart(int customerId, int shoeId) throws SQLException;
-    List<String> getActiveCart(int customerId) throws SQLException;
+    int getActiveCart(int customerId) throws SQLException;
     boolean checkout(int customerId) throws SQLException;
 }
