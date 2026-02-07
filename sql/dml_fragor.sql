@@ -58,13 +58,13 @@ HAVING SUM(oi.quantity * s.price) > 2000
 ORDER BY total_spent DESC, cu.city;
 
 -- topp 5 skor
-SELECT s.id, b.name AS brand, s.color, s.size, SUM(oi.quantity) AS units_sold
+SELECT s.id, b.name AS brand, s.colour, s.size, SUM(oi.quantity) AS units_sold
 FROM CustomerOrder co
          JOIN OrderItem oi ON oi.order_id = co.id
          JOIN Shoe s ON s.id = oi.shoe_id
          JOIN Brand b ON b.id = s.brand_id
 WHERE co.status = 'BETALD'
-GROUP BY s.id, b.name, s.color, s.size
+GROUP BY s.id, b.name, s.colour, s.size
 ORDER BY units_sold DESC, s.id LIMIT 5;
 
 -- bästa månaden

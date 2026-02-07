@@ -41,7 +41,7 @@ from (select (select o2.id
               limit 1)     as order_id,
              'Lundhags'    as brand,
              42.0          as size,
-             'Padje Light' as color,
+             'Padje Light' as colour,
              1             as quantity
       union all
       select (select o2.id
@@ -56,7 +56,7 @@ from (select (select o2.id
              'Blue/White',
              2) x
          join customerorder o on o.id = x.order_id
-         join shoe s on s.size = x.size and s.color = x.color
+         join shoe s on s.size = x.size and s.colour = x.colour
          join brand b on b.id = s.brand_id and b.name = x.brand;
 
 -- joasam AKTIV
@@ -70,7 +70,7 @@ from (select (select o2.id
               limit 1)              as order_id,
              'Adidas'               as brand,
              45.0                   as size,
-             'Core-black/Off-white' as color,
+             'Core-black/Off-white' as colour,
              1                      as quantity
       union all
       select (select o2.id
@@ -84,7 +84,7 @@ from (select (select o2.id
              'Marinblå',
              1) x
          join customerorder o on o.id = x.order_id
-         join shoe s on s.size = x.size and s.color = x.color
+         join shoe s on s.size = x.size and s.colour = x.colour
          join brand b on b.id = s.brand_id and b.name = x.brand;
 
 
@@ -98,7 +98,7 @@ from (select (select o2.id
               limit 1)  as order_id,
              'Meindl'   as brand,
              45.0       as size,
-             'Ljusbrun' as color,
+             'Ljusbrun' as colour,
              1          as quantity
       union all
       select (select o2.id
@@ -112,7 +112,7 @@ from (select (select o2.id
              'Dark Brown',
              1) x
          join customerorder o on o.id = x.order_id
-         join shoe s on s.size = x.size and s.color = x.color
+         join shoe s on s.size = x.size and s.colour = x.colour
          join brand b on b.id = s.brand_id and b.name = x.brand;
 
 
@@ -120,7 +120,7 @@ insert into orderitem (order_id, shoe_id, quantity)
 select o.id, s.id, 1
 from customerorder o
          join customer cu on cu.id = o.customer_id
-         join shoe s on s.size = 45.0 and s.color = 'Basalt Grey'
+         join shoe s on s.size = 45.0 and s.colour = 'Basalt Grey'
          join brand b on b.id = s.brand_id and b.name = 'Birkenstock'
 where cu.username = 'af96'
   and o.status = 'BETALD'
@@ -131,7 +131,7 @@ insert into orderitem (order_id, shoe_id, quantity)
 select o.id, s.id, 1
 from customerorder o
          join customer cu on cu.id = o.customer_id
-         join shoe s on s.size = 41.0 and s.color = 'Wheat'
+         join shoe s on s.size = 41.0 and s.colour = 'Wheat'
          join brand b on b.id = s.brand_id and b.name = 'Timberland'
 where cu.username = 'tete'
   and o.status = 'AKTIV'
@@ -148,7 +148,7 @@ from (select (select o2.id
               limit 1) as order_id,
              'Adidas'  as brand,
              40.0      as size,
-             'Beige'   as color,
+             'Beige'   as colour,
              1         as quantity
       union all
       select (select o2.id
@@ -162,5 +162,5 @@ from (select (select o2.id
              'Tived',
              1) x
          join customerorder o on o.id = x.order_id
-         join shoe s on s.size = x.size and s.color = x.color
+         join shoe s on s.size = x.size and s.colour = x.colour
          join brand b on b.id = s.brand_id and b.name = x.brand;

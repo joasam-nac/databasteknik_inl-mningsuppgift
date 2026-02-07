@@ -19,7 +19,7 @@ values ('Kängor'),
        ('Läderskor');
 
 
-insert into shoe (brand_id, size, color, price, stock)
+insert into shoe (brand_id, size, colour, price, stock)
 values ((select id from brand where name = 'Lundhags'), 42, 'Padje Light', 5299.99, 10),
        ((select id from brand where name = 'Lundhags'), 45, 'Padje Light', 5299.99, 7),
        ((select id from brand where name = 'Lundhags'), 39, 'Padje Dark', 5299.99, 10),

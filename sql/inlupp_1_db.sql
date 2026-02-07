@@ -19,7 +19,7 @@ create table shoe
     id       int auto_increment primary key,
     brand_id int           not null,
     size     decimal(4, 1) not null,
-    color    varchar(30)   not null,
+    colour   varchar(30)   not null,
     price    decimal(8, 2) not null,
     stock    int           not null default 0,
     check (price >= 0),
