@@ -1,7 +1,4 @@
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -141,7 +138,7 @@ public class Webbshop implements ShoeDao{
     public void addToCart(int customerId, int shoeId) throws SQLException {
         String query = "{call addtocart(?, ?)}";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareCall(query)){
+        CallableStatement stmt = conn.prepareCall(query)){
             stmt.setInt(1, customerId);
             stmt.setInt(2, shoeId);
             stmt.executeQuery();
@@ -154,7 +151,7 @@ public class Webbshop implements ShoeDao{
     public int getActiveCart(int customerId) throws SQLException {
         String query = "{call getactivecart(?)}";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareCall(query)){
+        CallableStatement stmt = conn.prepareCall(query)){
             stmt.setInt(1, customerId);
             try(ResultSet rs = stmt.executeQuery()){
                 if(rs.next()){
@@ -173,12 +170,11 @@ public class Webbshop implements ShoeDao{
         try(Connection conn = MySQLDataSourceConfig.getConnection();
         PreparedStatement stmt = conn.prepareCall(query)){
             stmt.setInt(1, customerId);
-            try(ResultSet rs = stmt.executeQuery()){
-                return true;
-            }
+            stmt.execute();
+            return true;
         } catch (SQLException e){
             System.out.println(e.getMessage());
+            return false;
         }
-        return false;
     }
 }

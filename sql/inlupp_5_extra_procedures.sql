@@ -6,6 +6,7 @@ create procedure getactivecart(in in_customer_id int)
 begin
     declare get_order_id int;
 
+
     select t_customer.id
         into get_order_id
     from customerorder t_customer
@@ -20,31 +21,34 @@ begin
         set get_order_id = last_insert_id();
     end if;
 
+    -- ger åtminstone tillbaka order_id så det blir simpelt på javasidan
     select
-        get_order_id as order_id,
-        s.id as shoe_id,
-        b.name as brand,
-        s.size, s.colour, s.price, o.quantity
-    from orderitem o
-        join shoe s on s.id = o.shoe_id
-        join brand b on b.id = s.brand_id
-    where o.order_id = get_order_id
-    order by o.id;
+    get_order_id as order_id,
+    s.id as shoe_id,
+    b.name as brand,
+    s.size, s.colour, s.price, o.quantity
+from customerorder co
+    left join orderitem o on o.order_id = co.id
+    left join shoe s on s.id = o.shoe_id
+    left join brand b on b.id = s.brand_id
+        where co.id = get_order_id
+order by o.id;
 end //
 
 delimiter ;
 
 delimiter $$
-create procedure checkout(in in_customer_int int)
+create procedure checkout(in in_customer int)
     begin
         declare get_order_id int;
         declare get_item_count int default 0;
         declare get_insufficient int default 0;
+        declare error_msg varchar(200) default 'Checkout failed.';
 
-        declare exit handler for sqlexception
+        declare exit handler for sqlstate '45000'
             begin
                 rollback;
-                signal sqlstate '45000' set message_text = 'Checkout failed.';
+                signal sqlstate '45000' set message_text = error_msg;
             end;
 
         start transaction;
@@ -53,13 +57,14 @@ create procedure checkout(in in_customer_int int)
         select c.id
             into get_order_id
         from customerorder c
-        where c.customer_id = in_customer_int and c.status = 'AKTIV'
+        where c.customer_id = in_customer and c.status = 'AKTIV'
         order by c.id
         limit 1;
 
         if get_order_id is null then
             rollback;
-            signal sqlstate '45000' set message_text = 'No cart found.';
+            set error_msg = 'No cart found.';
+            signal sqlstate '45000' set message_text = error_msg;
         end if;
 
         -- kollar om ordern är tom
@@ -70,7 +75,8 @@ create procedure checkout(in in_customer_int int)
 
         if get_item_count = 0 then
             rollback;
-            signal sqlstate '45000' set message_text = 'Cart has no items.';
+            set error_msg = 'Cart has no items.';
+            signal sqlstate '45000' set message_text = error_msg;
         end if;
 
         -- kollar med lagret
@@ -83,7 +89,8 @@ create procedure checkout(in in_customer_int int)
 
         if get_insufficient > 0 then
             rollback;
-            signal sqlstate '45000' set message_text = 'Not enough stock for this order';
+            set error_msg = 'Not enough stock for this order';
+            signal sqlstate '45000' set message_text = error_msg;
         end if;
 
         -- uppdaterar lager
