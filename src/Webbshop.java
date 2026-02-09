@@ -1,180 +1,111 @@
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import javax.swing.*;
+import java.sql.SQLException;
+import java.util.Scanner;
 
-public class Webbshop implements ShoeDao{
-    @Override
-    public int getCustomerIdByUsername(String username) throws SQLException {
-        String query = "select id from customer where username = ?";
+public class Webbshop {
+    private static final Scanner sc = new Scanner(System.in);
+    private static WebbshopDAO shop = new WebbshopDAO();
+    private static int customerId = -1;
 
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query)){
+    static void main() {
+        System.out.println("Skobutik");
+        while (true) {
+            showMenu();
+            int c = getInt();
 
-            stmt.setString(1, username);
-
-            try(ResultSet rs = stmt.executeQuery()){
-                if (!rs.next()){
-                    System.out.println("Username " + username + " does not exist");
-                    return -1;
+            try {
+                switch (c) {
+                    case 1 -> login();
+                    case 2 -> createCustomer();
+                    case 3 -> listAllShoes();
+                    case 4 -> listAllCategories();
+                    case 5 -> listShoesFromCategory();
+                    case 6 -> addShoeToCart();
+                    case 7 -> checkout();
+                    case 8 -> {
+                        System.out.println("Tack för att du har handlat hos oss!");
+                        return;
+                    }
+                    default -> System.out.println("Välj mellan 1..8");
                 }
-                return rs.getInt("id");
+            } catch (SQLException e){
+                System.out.println("db error: " + e.getMessage());
             }
-        } catch (SQLException e){
-            System.out.println("Error in retrieving customer_id via username: " + e.getMessage());
-            return -1;
+            System.out.println();
         }
     }
 
-    @Override
-    public boolean tryLogin(String username, String password) throws SQLException {
-        String query = "select password from customer where username = ?";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query)){
-            stmt.setString(1, username);
-            try(ResultSet rs = stmt.executeQuery()){
-                if (!rs.next()){
-                    System.out.println("Unknown username");
-                    return false;
-                }
-                String correctPassword = rs.getString("password");
-                return Objects.equals(correctPassword, password);
-            }
-        } catch(SQLException e){
-            System.out.println("Error while trying password. SQLException: " + e.getMessage());
-            return false;
+    private static void checkout() {
+    }
+
+    private static void addShoeToCart() {
+
+    }
+
+    private static void listShoesFromCategory() {
+    }
+
+    private static void listAllCategories() {
+    }
+
+    private static void listAllShoes() {
+    }
+
+    private static void createCustomer() throws SQLException{
+        System.out.print("Namn: ");
+        String name = sc.nextLine();
+        System.out.print("Användarnamn: ");
+        String user = sc.nextLine();
+        System.out.print("Stad: ");
+        String city = sc.nextLine();
+        System.out.print("Adress: ");
+        String address = sc.nextLine();
+        System.out.print("Lösenord: ");
+        String pass = sc.nextLine();
+
+        if(shop.createUser(name, user, city, address, pass)) {
+            System.out.println("Ny kund registrerad: " + name);
+            customerId = shop.getCustomerIdByUsername(user);
+        } else {
+            System.out.println("Fel vid skapande av kontot");
         }
     }
 
-    @Override
-    public List<Category> getCategories() throws SQLException {
-        String query = "select * from category";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(query)){
-            try(ResultSet rs = stmt.executeQuery()){
-                List<Category> categories = new ArrayList<>();
-                while(rs.next()){
-                    Category c = new Category(rs.getInt("id"), rs.getString("name"));
-                    categories.add(c);
-                }
-                return categories;
-            }
-        } catch (SQLException e){
-            System.out.println("Error while retrieving all the categories: " + e.getMessage());
+    private static int getInt() {
+        while (!sc.hasNextInt()) {
+            System.out.print("Skriv ett tal: ");
+            sc.next();
         }
-        return List.of();
+        int res = sc.nextInt();
+        sc.nextLine();
+        return res;
     }
 
-    @Override
-    public String getBrandFromId(int brandId) throws SQLException {
-        String query = "select name from brand where id = ?";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(query)){
-            stmt.setInt(1, brandId);
-            try(ResultSet rs = stmt.executeQuery()){
-                if(rs.next()){
-                    return rs.getString("name");
-                }
-            }
-        } catch (SQLException e) {
-            System.out.println("Eroor while retrieving brand name from id: " + e.getMessage());
+    private static void showMenu() {
+        if (customerId == -1) {
+            System.out.println("1. Logga in");
+            System.out.println("2. Skapa användare");
         }
-        return null;
+        System.out.println("3. Visa alla skor");
+        System.out.println("4. Visa alla kategorier");
+        System.out.println("5. Visa skor från en kategori");
+        if (customerId > 0) {
+            System.out.println("6. Lägg en sko i kassan");
+            System.out.println("7. Slutför köp");
+            System.out.println("8. Handlat klart");
+        }
     }
 
-    @Override
-    public void listAllShoes() throws SQLException {
-        String query = "select * from shoe";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(query)){
-            try(ResultSet rs = stmt.executeQuery()){
-                while(rs.next()){
-                    System.out.printf(
-                            "%d. %.2f kr, %s %s, storlek: %d, lager: %d%n",
-                            rs.getInt("id"),
-                            rs.getDouble("price"),
-                            getBrandFromId(rs.getInt("brand_id")),
-                            rs.getString("name"),
-                            rs.getInt("size"),
-                            rs.getInt("stock")
-                    );
-                }
-            }
-        } catch (SQLException e){
-            System.out.println("Error while retrieving all shoes from db: " + e.getMessage());
+    private static void login() throws SQLException {
+        System.out.print("Användarnamn: ");
+        String u = sc.nextLine();
+        System.out.println("Lösenord: ");
+        String p = sc.nextLine();
+
+        if (shop.tryLogin(u,p)){
+            customerId = shop.getCustomerIdByUsername(u);
         }
     }
 
 
-
-    @Override
-    public void getShoesFromCategory(String category) throws SQLException {
-        String query = "select * from shoe s " +
-                "join shoecategory sc on sc.shoe_id = s.id " +
-                "join category c on c.id = sc.category_id " +
-                "where c.name = ?";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-            PreparedStatement stmt = conn.prepareStatement(query)){
-            stmt.setString(1, category);
-            try(ResultSet rs = stmt.executeQuery()){
-                while(rs.next()){
-                    System.out.printf(
-                            "%d. %.2f kr, %s %s, storlek: %d, lager: %d%n",
-                            rs.getInt("id"),
-                            rs.getDouble("price"),
-                            getBrandFromId(rs.getInt("brand_id")),
-                            rs.getString("name"),
-                            rs.getInt("size"),
-                            rs.getInt("stock")
-                    );
-                }
-            }
-        } catch (SQLException e){
-            System.out.println("Error while retrieving all shoes from db: " + e.getMessage());
-        }
-    }
-
-    @Override
-    public void addToCart(int customerId, int shoeId) throws SQLException {
-        String query = "{call addtocart(?, ?)}";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-        CallableStatement stmt = conn.prepareCall(query)){
-            stmt.setInt(1, customerId);
-            stmt.setInt(2, shoeId);
-            stmt.executeQuery();
-        } catch (SQLException e){
-            System.out.println(e.getMessage());
-        }
-    }
-
-    @Override
-    public int getActiveCart(int customerId) throws SQLException {
-        String query = "{call getactivecart(?)}";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-        CallableStatement stmt = conn.prepareCall(query)){
-            stmt.setInt(1, customerId);
-            try(ResultSet rs = stmt.executeQuery()){
-                if(rs.next()){
-                    return rs.getInt("order_id");
-                }
-            } catch (SQLException e) {
-                System.out.println(e.getMessage());
-            }
-        }
-        return -1;
-    }
-
-    @Override
-    public boolean checkout(int customerId) throws SQLException {
-        String query = "{call checkout(?)}";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareCall(query)){
-            stmt.setInt(1, customerId);
-            stmt.execute();
-            return true;
-        } catch (SQLException e){
-            System.out.println(e.getMessage());
-            return false;
-        }
-    }
 }

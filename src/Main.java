@@ -1,7 +1,7 @@
 import java.sql.*;
 
 void main() throws SQLException {
-    Webbshop ws = new Webbshop();
+    WebbshopDAO ws = new WebbshopDAO();
     ws.getShoesFromCategory("Kängor");
     int i = ws.getActiveCart(1);
     System.out.println(i);

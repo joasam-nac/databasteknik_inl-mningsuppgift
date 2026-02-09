@@ -5,6 +5,7 @@ public interface ShoeDao {
 
     int getCustomerIdByUsername(String username) throws SQLException;
     boolean tryLogin(String username, String password) throws SQLException;
+    boolean createUser(String name, String username, String city, String address, String password) throws SQLException;
 
     List<Category> getCategories() throws SQLException;
     void listAllShoes() throws SQLException;

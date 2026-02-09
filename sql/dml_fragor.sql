@@ -23,7 +23,7 @@ WHERE co.status = 'BETALD'
 GROUP BY c.id, c.name
 ORDER BY shoes_sold DESC, c.name;
 
--- pengar spenderat per användare (price lives on Shoe now, not OrderItem)
+-- pengar spenderat per användare
 DROP TABLE IF EXISTS customerdata;
 
 CREATE TABLE customerdata AS
@@ -58,21 +58,21 @@ HAVING SUM(oi.quantity * s.price) > 2000
 ORDER BY total_spent DESC, cu.city;
 
 -- topp 5 skor
-SELECT s.id, b.name AS brand, s.colour, s.size, SUM(oi.quantity) AS units_sold
+SELECT s.id, s.name as shoe_name, b.name AS brand, s.colour, s.size, SUM(oi.quantity) AS units_sold
 FROM CustomerOrder co
          JOIN OrderItem oi ON oi.order_id = co.id
          JOIN Shoe s ON s.id = oi.shoe_id
          JOIN Brand b ON b.id = s.brand_id
 WHERE co.status = 'BETALD'
-GROUP BY s.id, b.name, s.colour, s.size
+GROUP BY s.id, s.name, b.name, s.colour, s.size
 ORDER BY units_sold DESC, s.id LIMIT 5;
 
 -- bästa månaden
-SELECT YEAR (co.date) AS year, MONTH (co.date) AS month, SUM (oi.quantity) AS units_sold
+SELECT YEAR (co.created_at) AS year, MONTH (co.created_at) AS month, SUM(oi.quantity) AS units_sold
 FROM CustomerOrder co
     JOIN OrderItem oi
 ON oi.order_id = co.id
 WHERE co.status = 'BETALD'
-GROUP BY YEAR (co.date), MONTH (co.date)
+GROUP BY YEAR (co.created_at), MONTH (co.created_at)
 ORDER BY units_sold DESC, year DESC, month DESC
-    LIMIT 1;
+    LIMIT 5;
