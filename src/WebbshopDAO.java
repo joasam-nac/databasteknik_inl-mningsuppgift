@@ -65,9 +65,6 @@ public class WebbshopDAO implements ShoeDao{
     }
 
     @Override
-    public boolean createUser()
-
-    @Override
     public List<Category> getCategories() throws SQLException {
         String query = "select * from category";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
@@ -165,7 +162,53 @@ public class WebbshopDAO implements ShoeDao{
             stmt.executeQuery();
         } catch (SQLException e){
             System.out.println(e.getMessage());
+
         }
+    }
+
+    public void listCartSize(int customer_order_id) throws SQLException {
+        String query = "select count(*) as c from orderitem o where o.order_id = ?";
+        try(Connection conn = MySQLDataSourceConfig.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(query)){
+            stmt.setInt(1, customer_order_id);
+            try(ResultSet rs = stmt.executeQuery()){
+                if(rs.next()){
+                    System.out.println("Antal produkter i ordern: " + rs.getInt("c"));
+                }
+            }
+        }
+    }
+
+    public void listShoesInCart(int customer_order_id) throws SQLException {
+        String query = "select * from orderitem o where o.order_id = ?";
+        try(Connection conn = MySQLDataSourceConfig.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(query)){
+            stmt.setInt(1, customer_order_id);
+            try(ResultSet rs = stmt.executeQuery()){
+                while(rs.next()){
+                    System.out.println("id: " + rs.getInt("shoe_id") + ". " + getShoeNameFromId(rs.getInt("shoe_id")));
+                }
+            }
+        }
+    }
+
+    public String getShoeNameFromId(int shoeId) throws SQLException {
+        String query = "select * from shoe s where s.id = ?";
+        try(Connection conn = MySQLDataSourceConfig.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(query)){
+            stmt.setInt(1, shoeId);
+            try(ResultSet rs = stmt.executeQuery()){
+                if(rs.next()){
+                    String fullName = "";
+                    fullName += getBrandFromId(rs.getString("brand_id"));
+                    fullName += " " + rs.getString("name");
+                    return fullName;
+                }
+            }
+        } catch (SQLException e){
+            e.getMessage();
+        }
+        return null;
     }
 
     @Override

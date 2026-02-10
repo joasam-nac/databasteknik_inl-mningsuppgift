@@ -1,5 +1,5 @@
-import javax.swing.*;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Scanner;
 
 public class Webbshop {
@@ -17,12 +17,13 @@ public class Webbshop {
                 switch (c) {
                     case 1 -> login();
                     case 2 -> createCustomer();
-                    case 3 -> listAllShoes();
+                    case 3 -> shop.listAllShoes();
                     case 4 -> listAllCategories();
                     case 5 -> listShoesFromCategory();
                     case 6 -> addShoeToCart();
-                    case 7 -> checkout();
-                    case 8 -> {
+                    case 7 -> shop.listShoesInCart(shop.getActiveCart(customerId));
+                    case 8 -> checkout();
+                    case 9 -> {
                         System.out.println("Tack för att du har handlat hos oss!");
                         return;
                     }
@@ -35,20 +36,33 @@ public class Webbshop {
         }
     }
 
-    private static void checkout() {
+    private static void checkout() throws SQLException {
+        if(customerId == -1) {
+            return;
+        }
+
+        shop.checkout(customerId);
     }
 
-    private static void addShoeToCart() {
-
+    private static void addShoeToCart() throws SQLException {
+        System.out.print("Skriv id på sko: ");
+        int shoeId = sc.nextInt();
+        shop.addToCart(customerId, shoeId);
+        shop.listCartSize(shop.getActiveCart(customerId));
+        shop.listShoesInCart(shop.getActiveCart(customerId));
     }
 
-    private static void listShoesFromCategory() {
+    private static void listShoesFromCategory() throws SQLException {
+        System.out.print("Skriv namn på kategori: ");
+        String categoryId = sc.next();
+        shop.getShoesFromCategory(categoryId);
     }
 
-    private static void listAllCategories() {
-    }
-
-    private static void listAllShoes() {
+    private static void listAllCategories() throws SQLException {
+        List<Category> categories = shop.getCategories();
+        for (Category category : categories) {
+            System.out.println(category.id() +  " " + category.name());
+        }
     }
 
     private static void createCustomer() throws SQLException{
@@ -91,8 +105,9 @@ public class Webbshop {
         System.out.println("5. Visa skor från en kategori");
         if (customerId > 0) {
             System.out.println("6. Lägg en sko i kassan");
-            System.out.println("7. Slutför köp");
-            System.out.println("8. Handlat klart");
+            System.out.println("7. Visa kassan");
+            System.out.println("8. Slutför köp");
+            System.out.println("9. Handlat klart");
         }
     }
 
