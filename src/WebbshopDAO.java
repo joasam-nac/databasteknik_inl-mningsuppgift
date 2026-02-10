@@ -5,7 +5,7 @@ import java.util.Objects;
 
 public class WebbshopDAO implements ShoeDao{
     @Override
-    public int getCustomerIdByUsername(String username) throws SQLException {
+    public int getCustomerIdByUsername(String username) {
         String query = "select id from customer where username = ?";
 
         try(Connection conn = MySQLDataSourceConfig.getConnection();
@@ -15,7 +15,6 @@ public class WebbshopDAO implements ShoeDao{
 
             try(ResultSet rs = stmt.executeQuery()){
                 if (!rs.next()){
-                    System.out.println("Username " + username + " does not exist");
                     return -1;
                 }
                 return rs.getInt("id");
@@ -27,14 +26,13 @@ public class WebbshopDAO implements ShoeDao{
     }
 
     @Override
-    public boolean tryLogin(String username, String password) throws SQLException {
+    public boolean tryLogin(String username, String password) {
         String query = "select password from customer where username = ?";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
             PreparedStatement stmt = conn.prepareStatement(query)){
             stmt.setString(1, username);
             try(ResultSet rs = stmt.executeQuery()){
                 if (!rs.next()){
-                    System.out.println("Unknown username");
                     return false;
                 }
                 String correctPassword = rs.getString("password");
@@ -47,17 +45,23 @@ public class WebbshopDAO implements ShoeDao{
     }
 
     @Override
-    public boolean createUser(String name, String username, String city, String address, String password) throws SQLException {
-        String query = "insert into customer (name, username, city, address, password) values (?,?,?,?,?)";
+    public boolean createNewUser(String name, String username, String city, String address, String password) {
+        String query = "{call createuser(?, ?, ?, ?, ?)}";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(query)){
+        CallableStatement stmt = conn.prepareCall(query)){
             stmt.setString(1, name);
             stmt.setString(2, username);
             stmt.setString(3, city);
             stmt.setString(4, address);
             stmt.setString(5, password);
-
-            return stmt.executeUpdate() > 0;
+            try(ResultSet rs = stmt.executeQuery()){
+                if (rs.next()) {
+                    if(rs.getInt(("customer_id")) > 0){
+                        return true;
+                    }
+                }
+                return false;
+            }
         } catch (SQLException e){
             System.out.println("Error while trying to create a new user: " + e.getMessage());
             return false;
@@ -65,7 +69,7 @@ public class WebbshopDAO implements ShoeDao{
     }
 
     @Override
-    public List<Category> getCategories() throws SQLException {
+    public List<Category> getCategories() {
         String query = "select * from category";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
         PreparedStatement stmt = conn.prepareStatement(query)){
@@ -84,76 +88,48 @@ public class WebbshopDAO implements ShoeDao{
     }
 
     @Override
-    public String getBrandFromId(int brandId) throws SQLException {
-        String query = "select name from brand where id = ?";
+    public List<Shoe> getAllShoes() {
+        String query = "select s.id, s.price, b.name as brand_name, s.name, "
+                + "s.size, s.colour, s.stock "
+                + "from shoe s join brand b on b.id = s.brand_id";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(query)){
-            stmt.setInt(1, brandId);
-            try(ResultSet rs = stmt.executeQuery()){
-                if(rs.next()){
-                    return rs.getString("name");
-                }
+        PreparedStatement stmt = conn.prepareStatement(query);
+        ResultSet rs = stmt.executeQuery()){
+            List<Shoe> shoes = new ArrayList<>();
+            while (rs.next()){
+                shoes.add(ResultSetToShoe(rs));
             }
+            return shoes;
         } catch (SQLException e) {
-            System.out.println("Eroor while retrieving brand name from id: " + e.getMessage());
-        }
-        return null;
-    }
-
-    @Override
-    public void listAllShoes() throws SQLException {
-        String query = "select * from shoe";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(query)){
-            try(ResultSet rs = stmt.executeQuery()){
-                while(rs.next()){
-                    System.out.printf(
-                            "%d. %.2f kr, %s %s, storlek: %d, lager: %d%n",
-                            rs.getInt("id"),
-                            rs.getDouble("price"),
-                            getBrandFromId(rs.getInt("brand_id")),
-                            rs.getString("name"),
-                            rs.getInt("size"),
-                            rs.getInt("stock")
-                    );
-                }
-            }
-        } catch (SQLException e){
-            System.out.println("Error while retrieving all shoes from db: " + e.getMessage());
+            System.out.println("Error while retrieving all shoes: " + e.getMessage());
+            return List.of();
         }
     }
 
-
-
     @Override
-    public void getShoesFromCategory(String category) throws SQLException {
-        String query = "select * from shoe s " +
-                "join shoecategory sc on sc.shoe_id = s.id " +
-                "join category c on c.id = sc.category_id " +
-                "where c.name = ?";
+    public List<Shoe> getShoesFromCategory(String category) {
+        String query = "select s.id, s.price, b.name as brand_name, s.name, "
+                + "s.size, s.colour, s.stock "
+                + "from shoe s join brand b on b.id = s.brand_id" + " join shoecategory sc on sc.shoe_id = s.id"
+                + " join category c on c.id = sc.category_id where c.name = ?";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
             PreparedStatement stmt = conn.prepareStatement(query)){
             stmt.setString(1, category);
             try(ResultSet rs = stmt.executeQuery()){
+                List<Shoe> shoes = new ArrayList<>();
                 while(rs.next()){
-                    System.out.printf(
-                            "%d. %.2f kr, %s %s, storlek: %d, lager: %d%n",
-                            rs.getInt("id"),
-                            rs.getDouble("price"),
-                            getBrandFromId(rs.getInt("brand_id")),
-                            rs.getString("name"),
-                            rs.getInt("size"),
-                            rs.getInt("stock")
-                    );
+                    shoes.add(ResultSetToShoe(rs));
                 }
+                return shoes;
             }
         } catch (SQLException e){
             System.out.println("Error while retrieving all shoes from db: " + e.getMessage());
         }
+        return List.of();
     }
 
     @Override
-    public void addToCart(int customerId, int shoeId) throws SQLException {
+    public void addToCart(int customerId, int shoeId) {
         String query = "{call addtocart(?, ?)}";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
         CallableStatement stmt = conn.prepareCall(query)){
@@ -166,70 +142,75 @@ public class WebbshopDAO implements ShoeDao{
         }
     }
 
-    public void listCartSize(int customer_order_id) throws SQLException {
-        String query = "select count(*) as c from orderitem o where o.order_id = ?";
+    @Override
+    public int getCartItemCount(int orderId) throws SQLException {
+        String query = "select count(*) as c from orderitem where order_id = ?";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
         PreparedStatement stmt = conn.prepareStatement(query)){
-            stmt.setInt(1, customer_order_id);
-            try(ResultSet rs = stmt.executeQuery()){
+            stmt.setInt(1, orderId);
+            try(ResultSet rs = stmt.executeQuery()) {
                 if(rs.next()){
-                    System.out.println("Antal produkter i ordern: " + rs.getInt("c"));
+                    return rs.getInt("c");
                 }
+                return 0;
             }
         }
-    }
-
-    public void listShoesInCart(int customer_order_id) throws SQLException {
-        String query = "select * from orderitem o where o.order_id = ?";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(query)){
-            stmt.setInt(1, customer_order_id);
-            try(ResultSet rs = stmt.executeQuery()){
-                while(rs.next()){
-                    System.out.println("id: " + rs.getInt("shoe_id") + ". " + getShoeNameFromId(rs.getInt("shoe_id")));
-                }
-            }
-        }
-    }
-
-    public String getShoeNameFromId(int shoeId) throws SQLException {
-        String query = "select * from shoe s where s.id = ?";
-        try(Connection conn = MySQLDataSourceConfig.getConnection();
-        PreparedStatement stmt = conn.prepareStatement(query)){
-            stmt.setInt(1, shoeId);
-            try(ResultSet rs = stmt.executeQuery()){
-                if(rs.next()){
-                    String fullName = "";
-                    fullName += getBrandFromId(rs.getString("brand_id"));
-                    fullName += " " + rs.getString("name");
-                    return fullName;
-                }
-            }
-        } catch (SQLException e){
-            e.getMessage();
-        }
-        return null;
     }
 
     @Override
-    public int getActiveCart(int customerId) throws SQLException {
+    public List<Shoe> getShoesInCart(int orderId) throws SQLException {
+        String query = "SELECT s.id, s.price, b.name AS brand_name, s.name, s.size, s.stock "
+                + "FROM shoe s JOIN brand b ON b.id = s.brand_id" + " join orderitem oi on oi.shoe_id = s.id" +
+                " where oi.order_id = ?";
+        try(Connection conn = MySQLDataSourceConfig.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(query)){
+            stmt.setInt(1, orderId);
+            try(ResultSet rs = stmt.executeQuery()){
+                List<Shoe> shoes = new ArrayList<>();
+                while(rs.next()){
+                    shoes.add(ResultSetToShoe(rs));
+                }
+                return shoes;
+            }
+        }
+    }
+
+    @Override
+    public ShopItem getActiveCart(int customerId) throws SQLException {
         String query = "{call getactivecart(?)}";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
         CallableStatement stmt = conn.prepareCall(query)){
             stmt.setInt(1, customerId);
             try(ResultSet rs = stmt.executeQuery()){
-                if(rs.next()){
-                    return rs.getInt("order_id");
+                int orderId = -1;
+                List<String> description = new ArrayList<>();
+
+                while (rs.next()) {
+                    orderId = rs.getInt("order_id");
+                    int shoeId = rs.getInt("shoe_id");
+                    if (rs.wasNull()) continue;
+
+                    description.add(String.format(
+                            "%s %s, %s, storlek: %.1f, %.2f kr, antal: %d",
+                            rs.getString("brand_name"),
+                            rs.getString("shoe_name"),
+                            rs.getString("colour"),
+                            rs.getDouble("size"),
+                            rs.getDouble("price"),
+                            rs.getInt("quantity")
+                    ));
                 }
+                return new ShopItem(orderId, description);
+
             } catch (SQLException e) {
                 System.out.println(e.getMessage());
             }
         }
-        return -1;
+        return null;
     }
 
     @Override
-    public boolean checkout(int customerId) throws SQLException {
+    public boolean checkout(int customerId) {
         String query = "{call checkout(?)}";
         try(Connection conn = MySQLDataSourceConfig.getConnection();
         PreparedStatement stmt = conn.prepareCall(query)){
@@ -240,5 +221,17 @@ public class WebbshopDAO implements ShoeDao{
             System.out.println(e.getMessage());
             return false;
         }
+    }
+
+    private Shoe ResultSetToShoe(ResultSet rs) throws SQLException {
+        return new Shoe(
+                rs.getInt("id"),
+                rs.getDouble("price"),
+                rs.getString("brand_name"),
+                rs.getString("name"),
+                rs.getInt("size"),
+                rs.getString("colour"),
+                rs.getInt("stock")
+        );
     }
 }

@@ -4,7 +4,7 @@ import java.util.Scanner;
 
 public class Webbshop {
     private static final Scanner sc = new Scanner(System.in);
-    private static WebbshopDAO shop = new WebbshopDAO();
+    private static final WebbshopDAO shop = new WebbshopDAO();
     private static int customerId = -1;
 
     static void main() {
@@ -12,60 +12,95 @@ public class Webbshop {
         while (true) {
             showMenu();
             int c = getInt();
-
             try {
                 switch (c) {
                     case 1 -> login();
                     case 2 -> createCustomer();
-                    case 3 -> shop.listAllShoes();
+                    case 3 -> printShoes(shop.getAllShoes());
                     case 4 -> listAllCategories();
                     case 5 -> listShoesFromCategory();
                     case 6 -> addShoeToCart();
-                    case 7 -> shop.listShoesInCart(shop.getActiveCart(customerId));
+                    case 7 -> showCart();
                     case 8 -> checkout();
                     case 9 -> {
-                        System.out.println("Tack för att du har handlat hos oss!");
+                        System.out.println(
+                                "Tack för att du har handlat hos oss!"
+                        );
                         return;
                     }
-                    default -> System.out.println("Välj mellan 1..8");
+                    default -> System.out.println("Välj mellan 1..9");
                 }
-            } catch (SQLException e){
+            } catch (SQLException e) {
                 System.out.println("db error: " + e.getMessage());
             }
             System.out.println();
         }
     }
 
-    private static void checkout() throws SQLException {
-        if(customerId == -1) {
+    private static void printShoes(List<Shoe> shoes) {
+        if (shoes.isEmpty()) {
+            System.out.println("Inga skor hittades.");
             return;
         }
+        for (Shoe s : shoes) {
+            System.out.printf(
+                    "%d. %.2f kr, %s %s, %s, storlek: %.1f, lager: %d%n",
+                    s.id(), s.price(), s.brandName(), s.name(),
+                    s.colour(), s.size(), s.stock()
+            );
+        }
+    }
 
-        shop.checkout(customerId);
+    private static void showCart() throws SQLException {
+        if (customerId == -1) return;
+        ShopItem cart = shop.getActiveCart(customerId);
+        if (cart.orderId() == -1) {
+            System.out.println("Ingen aktiv order.");
+            return;
+        }
+        if (cart.description().isEmpty()) {
+            System.out.println("Kassan är tom.");
+            return;
+        }
+        System.out.println("Antal produkter: " + cart.description().size());
+        for(String d : cart.description()){
+            System.out.println(d);
+        }
+    }
+
+    private static void checkout() throws SQLException {
+        if (customerId == -1) return;
+        if (shop.checkout(customerId)) {
+            System.out.println("Köp slutfört!");
+        } else {
+            System.out.println("Kunde inte slutföra köpet.");
+        }
     }
 
     private static void addShoeToCart() throws SQLException {
+        if (customerId == -1) {
+            System.out.println("Du måste logga in först.");
+            return;
+        }
         System.out.print("Skriv id på sko: ");
-        int shoeId = sc.nextInt();
+        int shoeId = getInt();
         shop.addToCart(customerId, shoeId);
-        shop.listCartSize(shop.getActiveCart(customerId));
-        shop.listShoesInCart(shop.getActiveCart(customerId));
+        showCart();
     }
 
     private static void listShoesFromCategory() throws SQLException {
         System.out.print("Skriv namn på kategori: ");
-        String categoryId = sc.next();
-        shop.getShoesFromCategory(categoryId);
+        String category = sc.nextLine();
+        printShoes(shop.getShoesFromCategory(category));
     }
 
     private static void listAllCategories() throws SQLException {
-        List<Category> categories = shop.getCategories();
-        for (Category category : categories) {
-            System.out.println(category.id() +  " " + category.name());
+        for (Category cat : shop.getCategories()) {
+            System.out.println(cat.id() + " " + cat.name());
         }
     }
 
-    private static void createCustomer() throws SQLException{
+    private static void createCustomer() throws SQLException {
         System.out.print("Namn: ");
         String name = sc.nextLine();
         System.out.print("Användarnamn: ");
@@ -77,7 +112,7 @@ public class Webbshop {
         System.out.print("Lösenord: ");
         String pass = sc.nextLine();
 
-        if(shop.createUser(name, user, city, address, pass)) {
+        if (shop.createNewUser(name, user, city, address, pass)) {
             System.out.println("Ny kund registrerad: " + name);
             customerId = shop.getCustomerIdByUsername(user);
         } else {
@@ -114,13 +149,14 @@ public class Webbshop {
     private static void login() throws SQLException {
         System.out.print("Användarnamn: ");
         String u = sc.nextLine();
-        System.out.println("Lösenord: ");
+        System.out.print("Lösenord: ");
         String p = sc.nextLine();
 
-        if (shop.tryLogin(u,p)){
+        if (shop.tryLogin(u, p)) {
             customerId = shop.getCustomerIdByUsername(u);
+            System.out.println("Inloggad!");
+        } else {
+            System.out.println("Fel användarnamn eller lösenord.");
         }
     }
-
-
 }

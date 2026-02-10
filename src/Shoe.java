@@ -1,0 +1,1 @@
+public record Shoe(int id, double price, String brandName, String name, double size, String colour, int stock) {}

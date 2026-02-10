@@ -7,32 +7,34 @@ begin
     declare get_order_id int;
 
 
-    select t_customer.id
-        into get_order_id
-    from customerorder t_customer
-    where t_customer.customer_id = in_customer_id and t_customer.status = 'AKTIV'
-    order by t_customer.id
-    limit 1;
+    SELECT co.id INTO get_order_id
+    FROM customerorder co
+    WHERE co.customer_id = in_customer_id AND co.status = 'AKTIV'
+    ORDER BY co.id DESC
+    LIMIT 1;
 
     -- fixar en ny order om ingen aktiv kassa finns
-    if get_order_id is null then
-        insert into customerorder (customer_id, created_at, status)
-            values (in_customer_id, now(), 'AKTIV');
-        set get_order_id = last_insert_id();
-    end if;
+    IF get_order_id IS NULL THEN
+        INSERT INTO customerorder (customer_id) VALUES (in_customer_id);
+        SET get_order_id = LAST_INSERT_ID();
+    END IF;
 
     -- ger åtminstone tillbaka order_id så det blir simpelt på javasidan
-    select
-    get_order_id as order_id,
-    s.id as shoe_id,
-    b.name as brand,
-    s.size, s.colour, s.price, o.quantity
-from customerorder co
-    left join orderitem o on o.order_id = co.id
-    left join shoe s on s.id = o.shoe_id
-    left join brand b on b.id = s.brand_id
-        where co.id = get_order_id
-order by o.id;
+    SELECT
+        get_order_id AS order_id,
+        s.id AS shoe_id,
+        b.name AS brand_name,
+        s.name AS shoe_name,
+        s.size,
+        s.colour,
+        s.price,
+        o.quantity
+    FROM customerorder co
+             LEFT JOIN orderitem o ON o.order_id = co.id
+             LEFT JOIN shoe s ON s.id = o.shoe_id
+             LEFT JOIN brand b ON b.id = s.brand_id
+    WHERE co.id = get_order_id
+    ORDER BY o.id;
 end //
 
 delimiter ;
@@ -108,3 +110,38 @@ create procedure checkout(in in_customer int)
     end $$
 delimiter ;
 
+delimiter //
+create procedure createuser(in in_name varchar(100), in in_username varchar(100), in in_city varchar(100), in in_address varchar(100), in in_password varchar(100))
+begin
+    declare user_exists int default 0;
+    declare error_msg varchar(200) default 'Failed to create new user.';
+
+    declare exit handler for sqlstate '45000'
+        begin
+            rollback;
+            signal sqlstate '45000' set message_text = error_msg;
+        end;
+
+    start transaction;
+
+    -- kollar om användarnamn finns
+    select count(*)
+        into user_exists
+    from customer c
+    where c.username = in_username
+    for update;
+
+    if user_exists > 0 then
+        rollback;
+        set error_msg = 'Username already exists';
+        signal sqlstate '45000' set message_text = error_msg;
+    end if;
+
+    -- skapa användare
+    insert into customer(name, username, city, address, password) values
+                                                                      (in_name, in_username, in_city, in_address, in_password);
+    commit;
+
+    select last_insert_id() as customer_id;
+end //
+delimiter ;
