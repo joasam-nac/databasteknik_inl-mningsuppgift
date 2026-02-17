@@ -1,123 +1,173 @@
-import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
+import java.util.function.IntConsumer;
 
 public class Webbshop {
     private static final Scanner sc = new Scanner(System.in);
-    private static final WebbshopDAO shop = new WebbshopDAO();
+    private static final ShoeDao shop = new HOFWebbshopDAO();
     private static int customerId = -1;
+
+    // Higher-order: menu dispatch table
+    private static final IntConsumer[] ACTIONS = new IntConsumer[10];
+
+    static {
+        ACTIONS[1] = c -> login();
+        ACTIONS[2] = c -> createCustomer();
+        ACTIONS[3] = c -> printShoes(shop.getAllShoes());
+        ACTIONS[4] = c -> listAllCategories();
+        ACTIONS[5] = c -> listShoesFromCategory();
+        ACTIONS[6] = c -> requireLogin(Webbshop::addShoeToCart);
+        ACTIONS[7] = c -> requireLogin(Webbshop::showCart);
+        ACTIONS[8] = c -> requireLogin(Webbshop::checkout);
+        ACTIONS[9] = c -> exit();
+    }
 
     static void main() {
         System.out.println("Skobutik");
         while (true) {
             showMenu();
-            int c = getInt();
-            try {
-                switch (c) {
-                    case 1 -> login();
-                    case 2 -> createCustomer();
-                    case 3 -> printShoes(shop.getAllShoes());
-                    case 4 -> listAllCategories();
-                    case 5 -> listShoesFromCategory();
-                    case 6 -> addShoeToCart();
-                    case 7 -> showCart();
-                    case 8 -> checkout();
-                    case 9 -> {
-                        System.out.println(
-                                "Tack för att du har handlat hos oss!"
-                        );
-                        return;
-                    }
-                    default -> System.out.println("Välj mellan 1..9");
-                }
-            } catch (SQLException e) {
-                System.out.println("db error: " + e.getMessage());
-            }
+            int choice = getInt();
+            dispatch(choice);
             System.out.println();
         }
     }
+
+    // ---------- HOF helpers for UI flow ----------
+
+    @FunctionalInterface
+    private interface Action {
+        void run();
+    }
+
+    private static void dispatch(int choice) {
+        IntConsumer action = (choice >= 1 && choice < ACTIONS.length)
+                ? ACTIONS[choice]
+                : null;
+
+        if (action == null) {
+            System.out.println("Välj mellan 1..9");
+            return;
+        }
+
+        try {
+            action.accept(choice);
+        } catch (RuntimeException e) {
+            // With the updated DAO (no SQLException in interface), DB issues likely
+            // come as a runtime DataAccessException. Keep UI robust anyway.
+            System.out.println("Fel: " + e.getMessage());
+        }
+    }
+
+    private static void requireLogin(Action action) {
+        if (customerId == -1) {
+            System.out.println("Du måste logga in först.");
+            return;
+        }
+        action.run();
+    }
+
+    private static void exit() {
+        System.out.println("Tack för att du har handlat hos oss!");
+        System.exit(0);
+    }
+
+    // ---------- UI actions ----------
 
     private static void printShoes(List<Shoe> shoes) {
         if (shoes.isEmpty()) {
             System.out.println("Inga skor hittades.");
             return;
         }
-        for (Shoe s : shoes) {
-            System.out.printf(
-                    "%d. %.2f kr, %s %s, %s, storlek: %.1f, lager: %d%n",
-                    s.id(), s.price(), s.brandName(), s.name(),
-                    s.colour(), s.size(), s.stock()
-            );
-        }
+        shoes.forEach(
+                s ->
+                        System.out.printf(
+                                "%d. %.2f kr, %s %s, %s, storlek: %.1f, lager: %d%n",
+                                s.id(),
+                                s.price(),
+                                s.brandName(),
+                                s.name(),
+                                s.colour(),
+                                s.size(),
+                                s.stock()
+                        )
+        );
     }
 
-    private static void showCart() throws SQLException {
-        if (customerId == -1) return;
-        ShopItem cart = shop.getActiveCart(customerId);
-        if (cart.orderId() == -1) {
+    private static void showCart() {
+        Optional<ShopItem> maybeCart = shop.getActiveCart(customerId);
+
+        if (maybeCart.isEmpty()) {
             System.out.println("Ingen aktiv order.");
             return;
         }
+
+        ShopItem cart = maybeCart.get();
         if (cart.description().isEmpty()) {
             System.out.println("Kassan är tom.");
             return;
         }
+
         System.out.println("Antal produkter: " + cart.description().size());
-        for(String d : cart.description()){
-            System.out.println(d);
-        }
+        cart.description().forEach(System.out::println);
     }
 
-    private static void checkout() throws SQLException {
-        if (customerId == -1) return;
-        if (shop.checkout(customerId)) {
-            System.out.println("Köp slutfört!");
-        } else {
-            System.out.println("Kunde inte slutföra köpet.");
-        }
+    private static void checkout() {
+        shop.checkout(customerId);
+        System.out.println("Köp slutfört!");
     }
 
-    private static void addShoeToCart() throws SQLException {
-        if (customerId == -1) {
-            System.out.println("Du måste logga in först.");
-            return;
-        }
+    private static void addShoeToCart() {
         System.out.print("Skriv id på sko: ");
         int shoeId = getInt();
         shop.addToCart(customerId, shoeId);
         showCart();
     }
 
-    private static void listShoesFromCategory() throws SQLException {
-        System.out.print("Skriv namn på kategori: ");
-        String category = sc.nextLine();
+    private static void listShoesFromCategory() {
+        String category = ask("Skriv namn på kategori: ");
         printShoes(shop.getShoesFromCategory(category));
     }
 
-    private static void listAllCategories() throws SQLException {
-        for (Category cat : shop.getCategories()) {
-            System.out.println(cat.id() + " " + cat.name());
-        }
+    private static void listAllCategories() {
+        shop.getCategories().forEach(cat -> System.out.println(cat.id() + " " + cat.name()));
     }
 
-    private static void createCustomer() throws SQLException {
-        System.out.print("Namn: ");
-        String name = sc.nextLine();
-        System.out.print("Användarnamn: ");
-        String user = sc.nextLine();
-        System.out.print("Stad: ");
-        String city = sc.nextLine();
-        System.out.print("Adress: ");
-        String address = sc.nextLine();
-        System.out.print("Lösenord: ");
-        String pass = sc.nextLine();
+    private static void createCustomer() {
+        String name = ask("Namn: ");
+        String user = ask("Användarnamn: ");
+        String city = ask("Stad: ");
+        String address = ask("Adress: ");
+        String pass = ask("Lösenord: ");
 
-        if (shop.createNewUser(name, user, city, address, pass)) {
-            System.out.println("Ny kund registrerad: " + name);
-            customerId = shop.getCustomerIdByUsername(user);
-        } else {
-            System.out.println("Fel vid skapande av kontot");
+        int newCustomerId = shop.createNewUser(name, user, city, address, pass);
+        System.out.println("Ny kund registrerad: " + name);
+        customerId = newCustomerId;
+    }
+
+    private static void login() {
+        String u = ask("Användarnamn: ");
+        String p = ask("Lösenord: ");
+
+        if (!shop.tryLogin(u, p)) {
+            System.out.println("Fel användarnamn eller lösenord.");
+            return;
         }
+
+        customerId = shop.findCustomerIdByUsername(u).orElse(-1);
+        if (customerId == -1) {
+            System.out.println("Inloggad, men kunde inte hitta kund-id.");
+            return;
+        }
+
+        System.out.println("Inloggad!");
+    }
+
+    // ---------- Input helpers ----------
+
+    private static String ask(String prompt) {
+        System.out.print(prompt);
+        return sc.nextLine();
     }
 
     private static int getInt() {
@@ -143,20 +193,6 @@ public class Webbshop {
             System.out.println("7. Visa kassan");
             System.out.println("8. Slutför köp");
             System.out.println("9. Handlat klart");
-        }
-    }
-
-    private static void login() throws SQLException {
-        System.out.print("Användarnamn: ");
-        String u = sc.nextLine();
-        System.out.print("Lösenord: ");
-        String p = sc.nextLine();
-
-        if (shop.tryLogin(u, p)) {
-            customerId = shop.getCustomerIdByUsername(u);
-            System.out.println("Inloggad!");
-        } else {
-            System.out.println("Fel användarnamn eller lösenord.");
         }
     }
 }

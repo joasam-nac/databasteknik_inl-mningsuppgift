@@ -1,18 +1,25 @@
-import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 public interface ShoeDao {
+    Optional<Integer> findCustomerIdByUsername(String username);
+    boolean tryLogin(String username, String password);
+    int createNewUser(
+            String name,
+            String username,
+            String city,
+            String address,
+            String password
+    ); // return new customerId (or throw if failed)
 
-    int getCustomerIdByUsername(String username) throws SQLException;
-    boolean tryLogin(String username, String password) throws SQLException;
-    boolean createNewUser(String name, String username, String city, String address, String password) throws SQLException;
+    List<Category> getCategories();
+    List<Shoe> getAllShoes();
+    List<Shoe> getShoesFromCategory(String category);
 
-    List<Category> getCategories() throws SQLException;
-    List<Shoe> getAllShoes() throws SQLException;
-    List<Shoe> getShoesFromCategory(String category) throws SQLException;
-    void addToCart(int customerId, int shoeId) throws SQLException;
-    int getCartItemCount(int orderId) throws SQLException;
-    List<Shoe> getShoesInCart(int orderId) throws SQLException;
-    ShopItem getActiveCart(int customerId) throws SQLException;
-    boolean checkout(int customerId) throws SQLException;
+    void addToCart(int customerId, int shoeId);
+    int getCartItemCount(int orderId);
+    List<Shoe> getShoesInCart(int orderId);
+
+    Optional<ShopItem> getActiveCart(int customerId);
+    void checkout(int customerId);
 }

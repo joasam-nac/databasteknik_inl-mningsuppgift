@@ -1,4 +1,4 @@
-import java.sql.*;
+/*import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -234,4 +234,4 @@ public class WebbshopDAO implements ShoeDao{
                 rs.getInt("stock")
         );
     }
-}
+}*/
